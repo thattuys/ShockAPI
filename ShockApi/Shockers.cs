@@ -25,4 +25,5 @@ public class Shocker
     }
     public int MaxIntensity { get; set; }
     public bool OwnShocker { get; set; }
+    public int ClientId { get; set; } // I think is is for PiShock only? not sure
 }

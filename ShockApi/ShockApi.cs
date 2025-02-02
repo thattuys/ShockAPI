@@ -1,9 +1,18 @@
-﻿namespace ShockApi;
+﻿using System.Threading.Tasks;
+
+namespace ShockApi;
 
 public enum Provider
 {
     PISHOCK,
     OPENSHOCK
+}
+
+public enum Mode
+{
+    BEEP,
+    VIBERATE,
+    SHOCK
 }
 
 public class ShockApi
@@ -66,5 +75,35 @@ public class ShockApi
         return _service.GetShockers().Where(
             pair => pair.Value.Name == Name
         ).First().Value;
+    }
+
+    /// <summary>
+    /// Sends a command to a shocker
+    /// </summary>
+    /// <param name="shocker">An instance of Shocker to send the command to</param>
+    /// <param name="mode">The command you want to send, Mode.BEEP, Mode.SHOCK, Mode.VIBERATE</param>
+    /// <param name="intensity">The intensity to send the command at</param>
+    /// <param name="duration">How long the command should fire</param>
+    /// <returns>A Boolean if the shocker _ALLOWS_ the requested command, Not actually if the shocker fired the command</returns>
+    public async Task<bool> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+        switch (mode) {
+            case Mode.BEEP:
+                if (!shocker.CanBeep) return false;
+                break;
+            case Mode.SHOCK:
+                if (!shocker.CanShock) return false;
+                break;
+            case Mode.VIBERATE:
+                if (!shocker.CanViberate) return false;
+                break;
+            default:
+                return false;
+        }
+        if (intensity > shocker.MaxIntensity)
+            return false;
+
+        await _service.SendCommandToShocker(shocker, mode, intensity, duration);
+
+        return true;
     }
 }

@@ -1,26 +1,30 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ShockApi.Services.PiShock.API;
+using System.Net.WebSockets;
+using System.Text;
 
 namespace ShockApi.Services.PiShock;
 
 public class Core : Interfaces.Services
 {
-    private int? UserID;
-    private readonly String APIKey;
-    private readonly String UserName;
-    private readonly String Origin;
+    private int? userID;
+    private readonly String apikey;
+    private readonly String username;
+    private readonly String origin;
     public Dictionary<String, Shocker> shockers;
 
+    private ClientWebSocket? wsClient;
+
     public Core(String userName, String APIKey, String origin ) {
-        this.APIKey = APIKey;
-        this.UserName = userName;
-        this.Origin = origin;
+        this.apikey = APIKey;
+        this.username = userName;
+        this.origin = origin;
         shockers = [];
     }
 
     public async Task PopulateNeeded() {
-        String uriWithParms =  $"https://auth.pishock.com/Auth/GetUserIfAPIKeyValid?apikey={APIKey}&username={UserName}";
+        String uriWithParms =  $"https://auth.pishock.com/Auth/GetUserIfAPIKeyValid?apikey={apikey}&username={username}";
        
         using (HttpClient httpClient = new HttpClient())
         {
@@ -30,22 +34,25 @@ public class Core : Interfaces.Services
 
                 var responseBody = await res.Content.ReadAsStringAsync();
                 
-                UserID = JsonSerializer.Deserialize<API.UserInfo>(responseBody)!.UserId;
+                userID = JsonSerializer.Deserialize<API.UserInfo>(responseBody)!.UserId;
             }
             catch (HttpRequestException ex) {
                 Console.WriteLine($"Exception: {ex}");
             }
         }
+
+        wsClient = new();
+        await wsClient.ConnectAsync(new Uri($"wss://broker.pishock.com/v2?Username={username}&ApiKey={apikey}"), default);
     }
 
     public async Task PopulateShockers() {
-        if (UserID == 0 || UserID == null) {
+        if (userID == 0 || userID == null) {
             await PopulateNeeded();
         }
 
         using (HttpClient httpClient = new HttpClient())
         {
-            String uriWithParms = $"https://ps.pishock.com/PiShock/GetUserDevices?UserId={UserID}&Token={APIKey}&api=true";
+            String uriWithParms = $"https://ps.pishock.com/PiShock/GetUserDevices?UserId={userID}&Token={apikey}&api=true";
             try {
                 var res = await httpClient.GetAsync(uriWithParms).ConfigureAwait(false);
                 res.EnsureSuccessStatusCode();
@@ -61,7 +68,8 @@ public class Core : Interfaces.Services
                         shocker.OwnShocker = true;
                         shocker.ShareCode = "";
                         shocker.ShockerId = dev.shockerId;
-                        shocker.Owner = UserName;
+                        shocker.ClientId = usr.clientId;
+                        shocker.Owner = username;
                         shockers.Add(dev.name!, shocker);
                     }
                 }
@@ -74,7 +82,7 @@ public class Core : Interfaces.Services
             try {
                 int[] ids;
                 { // Get a list of shockers shared with us.
-                    uriWithParms = $"https://ps.pishock.com/PiShock/GetShareCodesByOwner?UserId={UserID}&Token={APIKey}&api=true";
+                    uriWithParms = $"https://ps.pishock.com/PiShock/GetShareCodesByOwner?UserId={userID}&Token={apikey}&api=true";
                     var res = await httpClient.GetAsync(uriWithParms).ConfigureAwait(false);
                     res.EnsureSuccessStatusCode();
                     var responseBody = await res.Content.ReadAsStringAsync();
@@ -83,7 +91,7 @@ public class Core : Interfaces.Services
                 }
                 
                 { // Parse the shared shockers.
-                    uriWithParms = $"https://ps.pishock.com/PiShock/GetShockersByShareIds?UserId={UserID}&Token={APIKey}&api=true&shareIds=";
+                    uriWithParms = $"https://ps.pishock.com/PiShock/GetShockersByShareIds?UserId={userID}&Token={apikey}&api=true&shareIds=";
                     uriWithParms += string.Join("&shareIds=", ids.Select(x => x.ToString()).ToArray());
                     var res = await httpClient.GetAsync(uriWithParms).ConfigureAwait(false);
                     res.EnsureSuccessStatusCode();
@@ -102,6 +110,7 @@ public class Core : Interfaces.Services
                             shocker.CanViberate = dev.canVibrate;
                             shocker.ShareCode = dev.shareCode;
                             shocker.ShockerId = dev.shockerId;
+                            shocker.ClientId = dev.clientId;
                             shocker.Owner = user;
                             shockers.Add($"{user} - {dev.shockerName} - {dev.shareCode}", shocker);
                         }
@@ -112,6 +121,18 @@ public class Core : Interfaces.Services
                 Console.WriteLine($"Exception: {ex}");
             }
         }
+    }
+
+    public async Task SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+        if (wsClient == null) {
+            throw new Exception("WS Client is null, call Populate()");
+        }
+        await wsClient.SendAsync(Encoding.UTF8.GetBytes("{ \"Operation\":\"PING\" }"), WebSocketMessageType.Text, false, CancellationToken.None);
+        var bytes = new byte[1024];
+        var result = await wsClient.ReceiveAsync(bytes, default);
+        string res = Encoding.UTF8.GetString(bytes, 0, result.Count);
+
+        Console.WriteLine(res);
     }
 
     public Dictionary<String, Shocker> GetShockers() {
