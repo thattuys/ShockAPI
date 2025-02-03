@@ -26,7 +26,7 @@ public class ShockApi
     /// <param name="username">Username for connecting to the providers API</param>
     /// <param name="apiKey">API key for the provider</param>
     /// <param name="origin">The name of the application you want to show up in logs</param>
-    public ShockApi(Provider provider, String username, String apiKey, String origin) {
+    public ShockApi(Provider provider, string username, string apiKey, string origin, string server = "") {
         switch (provider)
         {
             case Provider.PISHOCK:

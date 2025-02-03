@@ -9,14 +9,14 @@ namespace ShockApi.Services.PiShock;
 public class Core : Interfaces.Services
 {
     private int? userID;
-    private readonly String apikey;
-    private readonly String username;
-    private readonly String origin;
-    public Dictionary<String, Shocker> shockers;
+    private readonly string apikey;
+    private readonly string username;
+    private readonly string origin;
+    public Dictionary<string, Shocker> shockers;
 
     private ClientWebSocket? wsClient;
 
-    public Core(String userName, String APIKey, String origin ) {
+    public Core(string userName, string APIKey, string origin ) {
         this.apikey = APIKey;
         this.username = userName;
         this.origin = origin;
@@ -24,7 +24,7 @@ public class Core : Interfaces.Services
     }
 
     public async Task PopulateNeeded() {
-        String uriWithParms =  $"https://auth.pishock.com/Auth/GetUserIfAPIKeyValid?apikey={apikey}&username={username}";
+        string uriWithParms =  $"https://auth.pishock.com/Auth/GetUserIfAPIKeyValid?apikey={apikey}&username={username}";
        
         using (HttpClient httpClient = new HttpClient())
         {
@@ -66,7 +66,7 @@ public class Core : Interfaces.Services
 
         using (HttpClient httpClient = new HttpClient())
         {
-            String uriWithParms = $"https://ps.pishock.com/PiShock/GetUserDevices?UserId={userID}&Token={apikey}&api=true";
+            string uriWithParms = $"https://ps.pishock.com/PiShock/GetUserDevices?UserId={userID}&Token={apikey}&api=true";
             try {
                 var res = await httpClient.GetAsync(uriWithParms).ConfigureAwait(false);
                 res.EnsureSuccessStatusCode();
@@ -191,7 +191,7 @@ public class Core : Interfaces.Services
         return (parsedRes.IsError, parsedRes.Message == null ? "" : parsedRes.Message);
     }
 
-    public Dictionary<String, Shocker> GetShockers() {
+    public Dictionary<string, Shocker> GetShockers() {
         return shockers;
     }
 }

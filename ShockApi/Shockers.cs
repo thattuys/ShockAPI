@@ -6,9 +6,9 @@ public class Shocker
     private bool _canShock;
     private bool _canViberate;
 
-    public String? Name { get; set; }
-    public String? Owner { get; set; }
-    public String? ShareCode { get; set; }
+    public string? Name { get; set; }
+    public string? Owner { get; set; }
+    public string? ShareCode { get; set; }
     public int ShockerId { get; set; }
     public bool IsPaused { get; set; }
     public bool CanBeep { 
