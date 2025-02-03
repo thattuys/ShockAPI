@@ -166,9 +166,8 @@ public class Core : Interfaces.Services
         req.PublishCommands = [command];
 
         var jsonReq = JsonSerializer.Serialize(req);
-        Console.WriteLine(jsonReq);
-
         await wsClient.SendAsync(Encoding.UTF8.GetBytes(jsonReq), WebSocketMessageType.Text, false, CancellationToken.None);
+
         var bytes = new byte[1024];
         var result = await wsClient.ReceiveAsync(bytes, default);
         string res = Encoding.UTF8.GetString(bytes, 0, result.Count);
