@@ -41,8 +41,22 @@ public class Core : Interfaces.Services
             }
         }
 
-        wsClient = new();
-        await wsClient.ConnectAsync(new Uri($"wss://broker.pishock.com/v2?Username={username}&ApiKey={apikey}"), default);
+        var pingMessage = "{ \"Operation\":\"PING\" }";
+
+        for (int i = 0; i < 10; i++)
+        {
+            wsClient = new();
+            await wsClient.ConnectAsync(new Uri($"wss://broker.pishock.com/v2?Username={username}&ApiKey={apikey}"), default);
+            await wsClient.SendAsync(Encoding.UTF8.GetBytes(pingMessage), WebSocketMessageType.Text, false, CancellationToken.None);
+            var bytes = new byte[1024];
+            var result = await wsClient.ReceiveAsync(bytes, default);
+            string res = Encoding.UTF8.GetString(bytes, 0, result.Count);
+
+            var parsedRes = JsonSerializer.Deserialize<API.WebSocketResponse>(res)!;
+            if(!parsedRes.IsError) break;
+            await wsClient.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", default);
+            await Task.Delay(2000);
+        }
     }
 
     public async Task PopulateShockers() {
