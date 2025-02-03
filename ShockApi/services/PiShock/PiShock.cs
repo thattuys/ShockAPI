@@ -165,7 +165,7 @@ public class Core : Interfaces.Services
             _ => ""
         };
         if (command.Body.Mode == "") {
-            return (false, "Invalid Mode");
+            return (true, "Invalid Mode");
         }
         command.Body.Intensity = intensity;
         command.Body.Duration = duration < 100 ? duration * 1000 : duration;
