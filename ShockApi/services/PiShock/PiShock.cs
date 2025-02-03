@@ -138,7 +138,7 @@ public class Core : Interfaces.Services
     }
 
     // TODO: Make a "CommandOptions"
-    public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+    public async Task<(bool, string)> SendCommandToShocker(CommandOptions options) {
         if (userID == null) {
             return (true, "Did not call Populate");
         }
@@ -153,11 +153,11 @@ public class Core : Interfaces.Services
         command.Body = new WebSocketBody();
         command.Body.Log = new WebSocketLog();
 
-        command.Target = $"c{shocker.ClientId}-";
-        command.Target += shocker.OwnShocker ? "ops" : $"sops-{shocker.ShareCode}";
+        command.Target = $"c{options.shocker!.ClientId}-";
+        command.Target += options.shocker!.OwnShocker ? "ops" : $"sops-{options.shocker.ShareCode}";
 
-        command.Body.ShockerId = shocker.ShockerId;
-        command.Body.Mode = mode switch
+        command.Body.ShockerId = options.shocker.ShockerId;
+        command.Body.Mode = options.mode switch
         {
             Mode.SHOCK => "s",
             Mode.VIBERATE => "v",
@@ -167,15 +167,15 @@ public class Core : Interfaces.Services
         if (command.Body.Mode == "") {
             return (true, "Invalid Mode");
         }
-        command.Body.Intensity = intensity;
-        command.Body.Duration = duration < 100 ? duration * 1000 : duration;
+        command.Body.Intensity = options.intensity;
+        command.Body.Duration = options.duration;
         command.Body.Repeating = true;
 
         command.Body.Log.UserId = userID;
         command.Body.Log.Held = false;
-        command.Body.Log.SendWarning = false; // TODO: add as option
+        command.Body.Log.SendWarning = options.sendWarning;
         command.Body.Log.Origin = origin;
-        command.Body.Log.Type = shocker.OwnShocker ? "api" : "sc";
+        command.Body.Log.Type = options.shocker.OwnShocker ? "api" : "sc";
 
         req.PublishCommands = [command];
 

@@ -84,25 +84,32 @@ public class ShockApi
     /// <param name="mode">The command you want to send, Mode.BEEP, Mode.SHOCK, Mode.VIBERATE</param>
     /// <param name="intensity">The intensity to send the command at</param>
     /// <param name="duration">How long the command should fire</param>
-    /// <returns>A Boolean if the shocker _ALLOWS_ the requested command, Not actually if the shocker fired the command</returns>
-    public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
-        switch (mode) {
+    /// <returns>
+    /// tuple(bool err, string message)
+    /// If err is true the command failed.
+    /// message will contain the message from the server or any of the errors leading up to it
+    /// </returns>
+    public async Task<(bool, string)> SendCommandToShocker(CommandOptions options) {
+        if (options.shocker == null) {
+            return (true, "Invalid CommandOptions");
+        }
+        switch (options.mode) {
             case Mode.BEEP:
-                if (!shocker.CanBeep) return (true, "Beep not supported");
+                if (!options.shocker.CanBeep) return (true, "Beep not supported");
                 break;
             case Mode.SHOCK:
-                if (!shocker.CanShock) return (true, "Shock not supported");
+                if (!options.shocker.CanShock) return (true, "Shock not supported");
                 break;
             case Mode.VIBERATE:
-                if (!shocker.CanViberate) return (true, "Viberate not supported");
+                if (!options.shocker.CanViberate) return (true, "Viberate not supported");
                 break;
             default:
                 return (true, "Unsupported mode");
         }
-        if (intensity > shocker.MaxIntensity)
-            intensity = shocker.MaxIntensity;
+        if (options.intensity > options.shocker.MaxIntensity)
+            options.intensity = options.shocker.MaxIntensity;
 
-        (var err, var message) = await _service.SendCommandToShocker(shocker, mode, intensity, duration);
+        (var err, var message) = await _service.SendCommandToShocker(options);
 
         return (err, message);
     }
