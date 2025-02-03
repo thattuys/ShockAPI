@@ -126,10 +126,10 @@ public class Core : Interfaces.Services
     // TODO: Make a "CommandOptions"
     public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
         if (userID == null) {
-            return (false, "Did not call Populate");
+            return (true, "Did not call Populate");
         }
         if (wsClient == null) {
-            throw new Exception("WS Client is null, call Populate()");
+            return (true, "WS Client is null, call Populate()");
         }
 
         var req = new API.WebSocketRequest();

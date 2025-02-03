@@ -88,16 +88,16 @@ public class ShockApi
     public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
         switch (mode) {
             case Mode.BEEP:
-                if (!shocker.CanBeep) return (false, "Beep not supported");
+                if (!shocker.CanBeep) return (true, "Beep not supported");
                 break;
             case Mode.SHOCK:
-                if (!shocker.CanShock) return (false, "Shock not supported");
+                if (!shocker.CanShock) return (true, "Shock not supported");
                 break;
             case Mode.VIBERATE:
-                if (!shocker.CanViberate) return (false, "Viberate not supported");
+                if (!shocker.CanViberate) return (true, "Viberate not supported");
                 break;
             default:
-                return (false, "Unsupported mode");
+                return (true, "Unsupported mode");
         }
         if (intensity > shocker.MaxIntensity)
             intensity = shocker.MaxIntensity;
