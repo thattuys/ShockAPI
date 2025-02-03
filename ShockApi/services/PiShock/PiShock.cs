@@ -123,16 +123,59 @@ public class Core : Interfaces.Services
         }
     }
 
-    public async Task SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+    // TODO: Make a "CommandOptions"
+    public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+        if (userID == null) {
+            return (false, "Did not call Populate");
+        }
         if (wsClient == null) {
             throw new Exception("WS Client is null, call Populate()");
         }
-        await wsClient.SendAsync(Encoding.UTF8.GetBytes("{ \"Operation\":\"PING\" }"), WebSocketMessageType.Text, false, CancellationToken.None);
+
+        var req = new API.WebSocketRequest();
+        req.Operation = "PUBLISH";
+
+        var command = new API.WebSocketCommand();
+        command.Body = new WebSocketBody();
+        command.Body.Log = new WebSocketLog();
+
+        command.Target = $"c{shocker.ClientId}-";
+        command.Target += shocker.OwnShocker ? "ops" : $"sops-{shocker.ShareCode}";
+
+        command.Body.ShockerId = shocker.ShockerId;
+        command.Body.Mode = mode switch
+        {
+            Mode.SHOCK => "s",
+            Mode.VIBERATE => "v",
+            Mode.BEEP => "b",
+            _ => ""
+        };
+        if (command.Body.Mode == "") {
+            return (false, "Invalid Mode");
+        }
+        command.Body.Intensity = intensity;
+        command.Body.Duration = duration < 100 ? duration * 1000 : duration;
+        command.Body.Repeating = true;
+
+        command.Body.Log.UserId = userID;
+        command.Body.Log.Held = false;
+        command.Body.Log.SendWarning = false; // TODO: add as option
+        command.Body.Log.Origin = origin;
+        command.Body.Log.Type = shocker.OwnShocker ? "api" : "sc";
+
+        req.PublishCommands = [command];
+
+        var jsonReq = JsonSerializer.Serialize(req);
+        Console.WriteLine(jsonReq);
+
+        await wsClient.SendAsync(Encoding.UTF8.GetBytes(jsonReq), WebSocketMessageType.Text, false, CancellationToken.None);
         var bytes = new byte[1024];
         var result = await wsClient.ReceiveAsync(bytes, default);
         string res = Encoding.UTF8.GetString(bytes, 0, result.Count);
 
-        Console.WriteLine(res);
+        var parsedRes = JsonSerializer.Deserialize<API.WebSocketResponse>(res)!;
+
+        return (parsedRes.IsError, parsedRes.Message == null ? "" : parsedRes.Message);
     }
 
     public Dictionary<String, Shocker> GetShockers() {

@@ -85,25 +85,25 @@ public class ShockApi
     /// <param name="intensity">The intensity to send the command at</param>
     /// <param name="duration">How long the command should fire</param>
     /// <returns>A Boolean if the shocker _ALLOWS_ the requested command, Not actually if the shocker fired the command</returns>
-    public async Task<bool> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
+    public async Task<(bool, string)> SendCommandToShocker(Shocker shocker, Mode mode, int intensity, int duration) {
         switch (mode) {
             case Mode.BEEP:
-                if (!shocker.CanBeep) return false;
+                if (!shocker.CanBeep) return (false, "Beep not supported");
                 break;
             case Mode.SHOCK:
-                if (!shocker.CanShock) return false;
+                if (!shocker.CanShock) return (false, "Shock not supported");
                 break;
             case Mode.VIBERATE:
-                if (!shocker.CanViberate) return false;
+                if (!shocker.CanViberate) return (false, "Viberate not supported");
                 break;
             default:
-                return false;
+                return (false, "Unsupported mode");
         }
         if (intensity > shocker.MaxIntensity)
-            return false;
+            intensity = shocker.MaxIntensity;
 
-        await _service.SendCommandToShocker(shocker, mode, intensity, duration);
+        (var err, var message) = await _service.SendCommandToShocker(shocker, mode, intensity, duration);
 
-        return true;
+        return (err, message);
     }
 }
