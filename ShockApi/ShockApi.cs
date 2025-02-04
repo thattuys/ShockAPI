@@ -26,11 +26,15 @@ public class ShockApi
     /// <param name="username">Username for connecting to the providers API</param>
     /// <param name="apiKey">API key for the provider</param>
     /// <param name="origin">The name of the application you want to show up in logs</param>
+    /// <param name="server">Optional: Argument to specify a self hosted OpenShock server</param>
     public ShockApi(Provider provider, string username, string apiKey, string origin, string server = "") {
         switch (provider)
         {
             case Provider.PISHOCK:
                 _service = new Services.PiShock.Core(username, apiKey, origin);
+                break;
+            case Provider.OPENSHOCK:
+                _service = new Services.OpenShock.Core(username, apiKey, origin, server == "" ? "openshock.app" : server);
                 break;
             default:
                 throw new NotImplementedException();
